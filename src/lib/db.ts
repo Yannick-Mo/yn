@@ -2,44 +2,22 @@ import Database from "@tauri-apps/plugin-sql"
 import type { Sentence } from "../engine/types"
 
 let db: Database | null = null
-let dbError: string | null = null
 
-export async function getDb(): Promise<Database> {
-  if (db) return db
-  if (dbError) throw new Error(dbError)
-  try {
-    db = await Database.load("sqlite:yn.db")
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS favorites (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sentence_id TEXT UNIQUE,
-        content TEXT NOT NULL,
-        author TEXT,
-        source TEXT NOT NULL,
-        from_text TEXT,
-        type_text TEXT,
-        translation TEXT,
-        added_at INTEGER NOT NULL
-      )
-    `)
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sentence_id TEXT,
-        content TEXT NOT NULL,
-        author TEXT,
-        source TEXT NOT NULL,
-        from_text TEXT,
-        type_text TEXT,
-        translation TEXT,
-        fetched_at INTEGER NOT NULL
-      )
-    `)
-    return db
-  } catch (err) {
-    dbError = `Database init failed: ${err}`
-    throw new Error(dbError)
+async function ensureDb(): Promise<Database> {
+  if (db) {
+    try {
+      await db.select("SELECT 1")
+      return db
+    } catch {
+      db = null
+    }
   }
+  const d = await Database.load("sqlite:yn.db")
+  await d.execute("CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY AUTOINCREMENT, sentence_id TEXT UNIQUE, content TEXT NOT NULL, author TEXT, source TEXT NOT NULL, from_text TEXT, type_text TEXT, translation TEXT, added_at INTEGER NOT NULL)")
+  await d.execute("CREATE TABLE IF NOT EXISTS history (id INTEGER PRIMARY KEY AUTOINCREMENT, sentence_id TEXT, content TEXT NOT NULL, author TEXT, source TEXT NOT NULL, from_text TEXT, type_text TEXT, translation TEXT, fetched_at INTEGER NOT NULL)")
+  await d.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_history_sentence_id ON history(sentence_id)")
+  db = d
+  return db
 }
 
 export interface Favorite {
@@ -53,30 +31,34 @@ export interface Favorite {
   added_at: number
 }
 
-export async function addFavorite(fav: Omit<Favorite, "added_at">): Promise<void> {
+export async function addFavorite(fav: Omit<Favorite, "added_at">): Promise<boolean> {
   try {
-    const d = await getDb()
+    const d = await ensureDb()
     await d.execute(
       "INSERT OR IGNORE INTO favorites (sentence_id, content, author, source, from_text, type_text, translation, added_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
       [fav.sentence_id, fav.content, fav.author, fav.source, fav.from_text, fav.type_text, fav.translation, Date.now()]
     )
+    return true
   } catch (err) {
     console.error("addFavorite failed:", err)
+    return false
   }
 }
 
-export async function removeFavorite(sentenceId: string): Promise<void> {
+export async function removeFavorite(sentenceId: string): Promise<boolean> {
   try {
-    const d = await getDb()
+    const d = await ensureDb()
     await d.execute("DELETE FROM favorites WHERE sentence_id = $1", [sentenceId])
+    return true
   } catch (err) {
     console.error("removeFavorite failed:", err)
+    return false
   }
 }
 
 export async function getFavorites(): Promise<Favorite[]> {
   try {
-    const d = await getDb()
+    const d = await ensureDb()
     return await d.select<Favorite[]>(
       "SELECT sentence_id, content, author, source, from_text, type_text, translation, added_at FROM favorites ORDER BY added_at DESC"
     )
@@ -88,7 +70,7 @@ export async function getFavorites(): Promise<Favorite[]> {
 
 export async function isFavorited(sentenceId: string): Promise<boolean> {
   try {
-    const d = await getDb()
+    const d = await ensureDb()
     const rows = await d.select<{cnt: number}[]>(
       "SELECT COUNT(*) as cnt FROM favorites WHERE sentence_id = $1", [sentenceId]
     )
@@ -113,9 +95,9 @@ export interface HistoryRecord {
 
 export async function addHistory(s: Sentence): Promise<void> {
   try {
-    const d = await getDb()
+    const d = await ensureDb()
     await d.execute(
-      "INSERT INTO history (sentence_id, content, author, source, from_text, type_text, translation, fetched_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+      "INSERT OR IGNORE INTO history (sentence_id, content, author, source, from_text, type_text, translation, fetched_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
       [s.id, s.content, s.author || null, s.source, s.from || null, s.type || null, s.translation || null, Date.now()]
     )
   } catch (err) {
@@ -125,7 +107,7 @@ export async function addHistory(s: Sentence): Promise<void> {
 
 export async function getHistory(limit = 100): Promise<HistoryRecord[]> {
   try {
-    const d = await getDb()
+    const d = await ensureDb()
     return await d.select<HistoryRecord[]>(
       "SELECT sentence_id, content, author, source, from_text, type_text, translation, fetched_at FROM history ORDER BY fetched_at DESC LIMIT $1",
       [limit]
@@ -138,7 +120,7 @@ export async function getHistory(limit = 100): Promise<HistoryRecord[]> {
 
 export async function clearHistoryDb(): Promise<void> {
   try {
-    const d = await getDb()
+    const d = await ensureDb()
     await d.execute("DELETE FROM history")
   } catch (err) {
     console.error("clearHistory failed:", err)

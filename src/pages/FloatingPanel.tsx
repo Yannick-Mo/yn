@@ -86,6 +86,7 @@ export default function FloatingPanel() {
   const [ready, setReady] = useState(false)
   const draggingRef = useRef(false)
   const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentIdRef = useRef<string | null>(null)
 
   const syncFavorites = async () => {
     const favs = await getFavorites()
@@ -93,17 +94,25 @@ export default function FloatingPanel() {
   }
 
   useEffect(() => {
-    const unlisten = listen("favorites:request", () => { syncFavorites() })
-    loadConfig().then(() => {
-      setReady(true)
-      if (!current) next()
-      syncFavorites()
-    })
-    return () => { unlisten.then((fn) => fn()) }
+    loadConfig()
+      .then(() => {
+        setReady(true)
+        if (!current) next()
+        syncFavorites()
+      })
+      .catch((err) => {
+        console.error("loadConfig failed:", err)
+        setReady(true)
+      })
   }, [])
 
   useEffect(() => {
-    if (current) isFavorited(current.id).then(setFaved)
+    if (!current) return
+    const id = current.id
+    currentIdRef.current = id
+    isFavorited(id).then((fav) => {
+      if (currentIdRef.current === id) setFaved(fav)
+    })
   }, [current?.id])
 
   const positionRestoredRef = useRef(false)
