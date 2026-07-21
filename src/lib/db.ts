@@ -1,37 +1,44 @@
 import Database from "@tauri-apps/plugin-sql"
 
 let db: Database | null = null
+let dbError: string | null = null
 
 export async function getDb(): Promise<Database> {
   if (db) return db
-  db = await Database.load("sqlite:yn.db")
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS favorites (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      sentence_id TEXT UNIQUE,
-      content TEXT NOT NULL,
-      author TEXT,
-      source TEXT NOT NULL,
-      from_text TEXT,
-      type_text TEXT,
-      translation TEXT,
-      added_at INTEGER NOT NULL
-    )
-  `)
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      sentence_id TEXT,
-      content TEXT NOT NULL,
-      author TEXT,
-      source TEXT NOT NULL,
-      from_text TEXT,
-      type_text TEXT,
-      translation TEXT,
-      fetched_at INTEGER NOT NULL
-    )
-  `)
-  return db
+  if (dbError) throw new Error(dbError)
+  try {
+    db = await Database.load("sqlite:yn.db")
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS favorites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sentence_id TEXT UNIQUE,
+        content TEXT NOT NULL,
+        author TEXT,
+        source TEXT NOT NULL,
+        from_text TEXT,
+        type_text TEXT,
+        translation TEXT,
+        added_at INTEGER NOT NULL
+      )
+    `)
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sentence_id TEXT,
+        content TEXT NOT NULL,
+        author TEXT,
+        source TEXT NOT NULL,
+        from_text TEXT,
+        type_text TEXT,
+        translation TEXT,
+        fetched_at INTEGER NOT NULL
+      )
+    `)
+    return db
+  } catch (err) {
+    dbError = `Database init failed: ${err}`
+    throw new Error(dbError)
+  }
 }
 
 export interface Favorite {
@@ -46,16 +53,24 @@ export interface Favorite {
 }
 
 export async function addFavorite(fav: Omit<Favorite, "added_at">): Promise<void> {
-  const d = await getDb()
-  await d.execute(
-    "INSERT OR IGNORE INTO favorites (sentence_id, content, author, source, from_text, type_text, translation, added_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-    [fav.sentence_id, fav.content, fav.author, fav.source, fav.from_text, fav.type_text, fav.translation, Date.now()]
-  )
+  try {
+    const d = await getDb()
+    await d.execute(
+      "INSERT OR IGNORE INTO favorites (sentence_id, content, author, source, from_text, type_text, translation, added_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+      [fav.sentence_id, fav.content, fav.author, fav.source, fav.from_text, fav.type_text, fav.translation, Date.now()]
+    )
+  } catch (err) {
+    console.error("addFavorite failed:", err)
+  }
 }
 
 export async function removeFavorite(sentenceId: string): Promise<void> {
-  const d = await getDb()
-  await d.execute("DELETE FROM favorites WHERE sentence_id = $1", [sentenceId])
+  try {
+    const d = await getDb()
+    await d.execute("DELETE FROM favorites WHERE sentence_id = $1", [sentenceId])
+  } catch (err) {
+    console.error("removeFavorite failed:", err)
+  }
 }
 
 export async function getFavorites(): Promise<Favorite[]> {
@@ -66,11 +81,17 @@ export async function getFavorites(): Promise<Favorite[]> {
 }
 
 export async function isFavorited(sentenceId: string): Promise<boolean> {
-  const d = await getDb()
-  const rows = await d.select<{cnt: number}[]>(
-    "SELECT COUNT(*) as cnt FROM favorites WHERE sentence_id = $1", [sentenceId]
-  )
-  return rows[0]?.cnt > 0
+  try {
+    const d = await getDb()
+    const rows = await d.select<{cnt: number}[]>(
+      "SELECT COUNT(*) as cnt FROM favorites WHERE sentence_id = $1", [sentenceId]
+    )
+    const row = rows[0]
+    return row ? row.cnt > 0 : false
+  } catch (err) {
+    console.error("isFavorited failed:", err)
+    return false
+  }
 }
 
 export async function exportFavorites(format: "json" | "csv" | "txt"): Promise<string> {
@@ -93,5 +114,7 @@ export async function exportFavorites(format: "json" | "csv" | "txt"): Promise<s
         if (f.from_text) s += ` (${f.from_text})`
         return s
       }).join("\n\n")
+    default:
+      return ""
   }
 }

@@ -27,8 +27,10 @@ export default function FavoritesPage() {
     const a = document.createElement("a")
     a.href = url
     a.download = `yn-favorites.${format}`
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   if (loading) return <p className="text-sm" style={{ color: "var(--main-text-dim)" }}>加载中...</p>

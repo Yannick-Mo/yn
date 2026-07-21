@@ -63,8 +63,8 @@ pub fn load_config(path: &std::path::Path) -> AppConfig {
         .unwrap_or_default()
 }
 
-pub fn save_config(path: &std::path::Path, config: &AppConfig) {
-    if let Ok(json) = serde_json::to_string_pretty(config) {
-        let _ = std::fs::write(path, json);
-    }
+pub fn save_config(path: &std::path::Path, config: &AppConfig) -> Result<(), String> {
+    let json = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
+    std::fs::write(path, json).map_err(|e| e.to_string())?;
+    Ok(())
 }

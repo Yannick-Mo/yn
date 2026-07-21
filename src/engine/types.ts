@@ -17,14 +17,4 @@ export interface SourceConfig {
   params?: Record<string, string>
 }
 
-export interface CustomSourceConfig {
-  id: string
-  label: string
-  url: string
-  method: "GET" | "POST"
-  headers: Record<string, string>
-  contentPath: string
-  authorPath?: string
-  translationPath?: string
-  fromPath?: string
-}
+

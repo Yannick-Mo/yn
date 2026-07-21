@@ -8,6 +8,7 @@ export default function SourcesPage() {
   if (!config) return <p className="text-sm" style={{ color: "var(--main-text-dim)" }}>加载中...</p>
 
   const adapters = registry.getAll()
+  const enabledSet = new Set(config.enabled_sources)
 
   return (
     <div className="max-w-lg">
@@ -21,10 +22,12 @@ export default function SourcesPage() {
             </div>
             <input
               type="checkbox"
-              checked={adapter.config.enabled}
+              checked={enabledSet.has(adapter.name)}
               onChange={() => {
-                adapter.config.enabled = !adapter.config.enabled
-                const enabled = adapters.filter((a) => a.config.enabled).map((a) => a.name)
+                const currentlyEnabled = enabledSet.has(adapter.name)
+                const enabled = currentlyEnabled
+                  ? config.enabled_sources.filter((n) => n !== adapter.name)
+                  : [...config.enabled_sources, adapter.name]
                 update({ enabled_sources: enabled })
               }}
               className="accent-blue-500"

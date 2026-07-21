@@ -38,15 +38,14 @@ export default function MainWindow() {
     for (const a of registry.getAll()) {
       a.config.enabled = enabled.has(a.name)
     }
-    registry.setStrategy(config.source_strategy as "single" | "random" | "round-robin")
+    if (config.source_strategy === "single" || config.source_strategy === "random" || config.source_strategy === "round-robin") {
+      registry.setStrategy(config.source_strategy)
+    }
   }, [config])
 
   useEffect(() => {
     const unlisten = listen<Sentence>("sentence:new", (event) => {
-      useSentenceStore.setState((state) => ({
-        current: event.payload,
-        history: [event.payload, ...state.history].slice(0, 100),
-      }))
+      useSentenceStore.setState({ current: event.payload })
     })
     return () => { unlisten.then((fn) => fn()) }
   }, [])
@@ -59,6 +58,7 @@ export default function MainWindow() {
       case "favorites": return <FavoritesPage />
       case "history": return <HistoryPage />
       case "advanced": return <AdvancedPage />
+      default: return null
     }
   }
 
@@ -89,17 +89,11 @@ export default function MainWindow() {
             <button
               key={page.key}
               onClick={() => setActivePage(page.key)}
-              className="w-full text-left px-5 py-2.5 text-sm transition-colors"
+              className="w-full text-left px-5 py-2.5 text-sm transition-colors sidebar-btn"
               style={{
                 color: activePage === page.key ? "var(--main-text)" : "var(--main-text-dim)",
                 background: activePage === page.key ? "var(--main-surface)" : "transparent",
                 fontWeight: activePage === page.key ? 500 : 400,
-              }}
-              onMouseEnter={(e) => {
-                if (activePage !== page.key) e.currentTarget.style.background = "var(--main-surface)"
-              }}
-              onMouseLeave={(e) => {
-                if (activePage !== page.key) e.currentTarget.style.background = "transparent"
               }}
             >
               <span className="mr-2">{page.icon}</span>

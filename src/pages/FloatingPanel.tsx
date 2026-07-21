@@ -6,23 +6,34 @@ import { useSentenceStore } from "../stores/sentenceStore"
 import { useConfigStore } from "../stores/configStore"
 import { addFavorite, removeFavorite, isFavorited } from "../lib/db"
 import type { AppConfig } from "../lib/ipc"
-
-let dragging = false
+import type { SourceStrategy } from "../engine/types"
 
 function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
+  let h = hex
+  if (h.startsWith("#") && h.length === 4) {
+    h = "#" + h[1] + h[1] + h[2] + h[2] + h[3] + h[3]
+  }
+  const r = parseInt(h.slice(1, 3), 16)
+  const g = parseInt(h.slice(3, 5), 16)
+  const b = parseInt(h.slice(5, 7), 16)
   if (isNaN(r) || isNaN(g) || isNaN(b)) return ""
   return `rgba(${r},${g},${b},${alpha})`
 }
 
 function isLightColor(hex: string): boolean {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
+  let h = hex
+  if (h.startsWith("#") && h.length === 4) {
+    h = "#" + h[1] + h[1] + h[2] + h[2] + h[3] + h[3]
+  }
+  const r = parseInt(h.slice(1, 3), 16)
+  const g = parseInt(h.slice(3, 5), 16)
+  const b = parseInt(h.slice(5, 7), 16)
   if (isNaN(r) || isNaN(g) || isNaN(b)) return false
   return (r * 299 + g * 587 + b * 114) / 1000 > 128
+}
+
+function isSourceStrategy(v: string): v is SourceStrategy {
+  return v === "single" || v === "random" || v === "round-robin"
 }
 
 function syncRegistry(reg: import("../engine").SourceRegistry, cfg: AppConfig) {
@@ -30,7 +41,9 @@ function syncRegistry(reg: import("../engine").SourceRegistry, cfg: AppConfig) {
   for (const a of reg.getAll()) {
     a.config.enabled = enabled.has(a.name)
   }
-  reg.setStrategy(cfg.source_strategy as "single" | "random" | "round-robin")
+  if (isSourceStrategy(cfg.source_strategy)) {
+    reg.setStrategy(cfg.source_strategy)
+  }
 }
 
 function applyPanelVars(cfg: AppConfig) {
@@ -71,6 +84,8 @@ export default function FloatingPanel() {
   const registry = useSentenceStore((s) => s.registry)
   const [faved, setFaved] = useState(false)
   const [ready, setReady] = useState(false)
+  const draggingRef = useRef(false)
+  const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     loadConfig().then(() => {
@@ -149,19 +164,24 @@ export default function FloatingPanel() {
 
   const handleMouseDown = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault()
-    if (dragging) return
-    dragging = true
+    if (draggingRef.current) return
+    draggingRef.current = true
     try {
       await getCurrentWebviewWindow().startDragging()
     } finally {
-      dragging = false
+      draggingRef.current = false
     }
   }, [])
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    if (wheelTimerRef.current) return
+    wheelTimerRef.current = setTimeout(() => {
+      wheelTimerRef.current = null
+    }, 300)
     if (e.deltaY > 0) next()
     else prev()
-  }, [])
+  }, [next, prev])
 
   const showNav = config?.panel_show_nav ?? true
   const fontSize = config?.panel_font_size ?? 16
@@ -240,7 +260,7 @@ export default function FloatingPanel() {
         >
           <button
             onClick={prev}
-            className="flex items-center justify-center rounded-full transition-all"
+            className="flex items-center justify-center rounded-full transition-all hover-nav-btn"
             style={{
               width: fontSize + 16,
               height: fontSize + 16,
@@ -248,14 +268,12 @@ export default function FloatingPanel() {
               background: "var(--panel-btn-bg)",
               fontSize: fontSize - 2,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--panel-btn-hover)"; e.currentTarget.style.color = "var(--panel-text)" }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--panel-btn-bg)"; e.currentTarget.style.color = "var(--panel-sub)" }}
           >
             ◀
           </button>
           <button
             onClick={next}
-            className="flex items-center justify-center rounded-full transition-all"
+            className="flex items-center justify-center rounded-full transition-all hover-nav-btn"
             style={{
               width: fontSize + 16,
               height: fontSize + 16,
@@ -263,8 +281,6 @@ export default function FloatingPanel() {
               background: "var(--panel-btn-bg)",
               fontSize: fontSize - 2,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--panel-btn-hover)"; e.currentTarget.style.color = "var(--panel-text)" }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--panel-btn-bg)"; e.currentTarget.style.color = "var(--panel-sub)" }}
           >
             ▶
           </button>

@@ -6,16 +6,22 @@ export default function AdvancedPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    isAutostartEnabled().then((enabled) => {
-      setAutoStart(enabled)
-      setLoading(false)
-    })
+    isAutostartEnabled()
+      .then((enabled) => {
+        setAutoStart(enabled)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [])
 
   const toggleAutostart = async () => {
     const next = !autoStart
-    await setAutostart(next)
-    setAutoStart(next)
+    try {
+      await setAutostart(next)
+      setAutoStart(next)
+    } catch (err) {
+      console.error("toggleAutostart failed:", err)
+    }
   }
 
   return (

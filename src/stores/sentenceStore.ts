@@ -9,8 +9,10 @@ interface SentenceStore {
   error: string | null
   registry: SourceRegistry
   timerId: ReturnType<typeof setInterval> | null
+  fetching: boolean
   next: () => Promise<void>
   prev: () => void
+  forward: () => void
   startAutoRefresh: (intervalMs: number) => void
   stopAutoRefresh: () => void
   clearHistory: () => void
@@ -22,19 +24,23 @@ export const useSentenceStore = create<SentenceStore>((set, get) => ({
   error: null,
   registry: new SourceRegistry(),
   timerId: null,
+  fetching: false,
 
   next: async () => {
-    const { registry } = get()
+    const { registry, fetching } = get()
+    if (fetching) return
+    set({ fetching: true })
     const result = await registry.fetchSentence()
     if (result.sentence) {
       set((state) => ({
         current: result.sentence,
         history: [result.sentence!, ...state.history].slice(0, 100),
         error: null,
+        fetching: false,
       }))
       emit("sentence:new", result.sentence)
     } else {
-      set({ error: result.error })
+      set({ error: result.error, fetching: false })
     }
   },
 
@@ -44,6 +50,15 @@ export const useSentenceStore = create<SentenceStore>((set, get) => ({
     const idx = history.indexOf(current)
     if (idx < history.length - 1) {
       set({ current: history[idx + 1] })
+    }
+  },
+
+  forward: () => {
+    const { history, current } = get()
+    if (history.length < 2 || !current) return
+    const idx = history.indexOf(current)
+    if (idx > 0) {
+      set({ current: history[idx - 1] })
     }
   },
 

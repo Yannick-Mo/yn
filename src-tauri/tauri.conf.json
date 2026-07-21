@@ -38,7 +38,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src 'self' https://v1.hitokoto.cn https://v1.jinrishici.com https://dummyjson.com https://card.gudong.site https://api.xygeng.cn; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
     }
   },
   "bundle": {

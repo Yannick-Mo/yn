@@ -43,7 +43,7 @@ export class LocalAdapter extends BaseAdapter {
   }
 
   async fetch(): Promise<Sentence> {
-    const text = FALLBACK_SENTENCES[Math.floor(Math.random() * FALLBACK_SENTENCES.length)]
+    const text = FALLBACK_SENTENCES[Math.floor(Math.random() * FALLBACK_SENTENCES.length)]!
     return {
       id: this.generateId(),
       content: text,

@@ -2,18 +2,25 @@ import { useEffect, useState } from "react"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { check } from "@tauri-apps/plugin-updater"
 import { ask } from "@tauri-apps/plugin-dialog"
+import { ErrorBoundary } from "./components/ErrorBoundary"
 import FloatingPanel from "./pages/FloatingPanel"
 import MainWindow from "./pages/MainWindow"
 import Fallback from "./pages/Fallback"
 
 type WindowLabel = "main" | "floating" | "unknown"
 
+function isWindowLabel(label: string): label is WindowLabel {
+  return label === "main" || label === "floating" || label === "unknown"
+}
+
 export default function App() {
   const [label, setLabel] = useState<WindowLabel>("unknown")
 
   useEffect(() => {
     const win = getCurrentWebviewWindow()
-    setLabel(win.label as WindowLabel)
+    if (isWindowLabel(win.label)) {
+      setLabel(win.label)
+    }
 
     if (win.label === "main") {
       checkForUpdate()
@@ -21,11 +28,11 @@ export default function App() {
   }, [])
 
   return (
-    <>
+    <ErrorBoundary>
       {label === "floating" && <FloatingPanel />}
       {label === "main" && <MainWindow />}
       {label === "unknown" && <Fallback />}
-    </>
+    </ErrorBoundary>
   )
 }
 

@@ -23,6 +23,15 @@ select option {
   color: var(--main-text);
 }
 
+.hover-nav-btn:hover {
+  background: var(--panel-btn-hover) !important;
+  color: var(--panel-text) !important;
+}
+
+.sidebar-btn:hover {
+  background: var(--main-surface) !important;
+}
+
 :root,
 [data-theme="glass"] {
   --main-bg-start: #0f172a;

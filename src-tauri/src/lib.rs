@@ -99,17 +99,17 @@ pub fn run() {
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            let config_path = app.path().app_data_dir().map(|d| d.join("config.json")).ok();
-            let config = if let Some(ref path) = config_path {
+            let config_path = app.path().app_data_dir().map(|d| d.join("config.json"));
+            let (config, path) = if let Ok(ref path) = config_path {
                 if let Some(parent) = path.parent() {
                     let _ = std::fs::create_dir_all(parent);
                 }
-                storage::load_config(path)
+                (storage::load_config(path), path.clone())
             } else {
-                storage::AppConfig::default()
+                eprintln!("Warning: could not resolve app_data_dir, using defaults");
+                (storage::AppConfig::default(), std::path::PathBuf::new())
             };
 
-            let path = config_path.unwrap_or_default();
             app.manage(AppState {
                 config: Mutex::new(config.clone()),
                 config_path: path,
@@ -123,8 +123,12 @@ pub fn run() {
             }
 
             create_tray(app.handle())?;
-            let _ = app.global_shortcut().register("Ctrl+Shift+N");
-            let _ = app.global_shortcut().register("Ctrl+Shift+Y");
+            if let Err(e) = app.global_shortcut().register("Ctrl+Shift+N") {
+                eprintln!("Failed to register Ctrl+Shift+N: {e}");
+            }
+            if let Err(e) = app.global_shortcut().register("Ctrl+Shift+Y") {
+                eprintln!("Failed to register Ctrl+Shift+Y: {e}");
+            }
             Ok(())
         })
         .on_window_event(|window, event| {

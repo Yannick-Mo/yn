@@ -21,7 +21,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
   update: async (patch) => {
     const { config } = get()
-    if (!config) return
+    if (!config) throw new Error("Cannot update config before loading")
     const merged = { ...config, ...patch }
     await ipc.setConfig(merged)
     set({ config: merged })
