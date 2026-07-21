@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react"
 import { listen } from "@tauri-apps/api/event"
+import { useFavoriteStore } from "../../stores/favoriteStore"
 import { getFavorites, removeFavorite, exportFavorites } from "../../lib/db"
 import type { Favorite } from "../../lib/db"
 
 export default function FavoritesPage() {
+  const storeItems = useFavoriteStore((s) => s.items)
+  const setStoreItems = useFavoriteStore((s) => s.setItems)
   const [favorites, setFavorites] = useState<Favorite[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -13,6 +16,7 @@ export default function FavoritesPage() {
     setError(null)
     try {
       const favs = await getFavorites()
+      setStoreItems(favs)
       setFavorites(favs)
     } catch (err) {
       setError(String(err))
@@ -21,10 +25,24 @@ export default function FavoritesPage() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    if (storeItems.length > 0) {
+      setFavorites(storeItems)
+      setLoading(false)
+    } else {
+      load()
+    }
+  }, [storeItems])
 
   useEffect(() => {
-    const unlisten = listen("favorites:updated", () => { load() })
+    if (storeItems.length === 0) load()
+  }, [])
+
+  useEffect(() => {
+    const unlisten = listen<Favorite[]>("favorites:sync", (event) => {
+      setStoreItems(event.payload)
+      setFavorites(event.payload)
+    })
     return () => { unlisten.then((fn) => fn()) }
   }, [])
 

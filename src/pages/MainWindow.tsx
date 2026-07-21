@@ -2,7 +2,9 @@ import { useEffect, useState } from "react"
 import { listen } from "@tauri-apps/api/event"
 import { useConfigStore } from "../stores/configStore"
 import { useSentenceStore } from "../stores/sentenceStore"
+import { useFavoriteStore } from "../stores/favoriteStore"
 import type { Sentence } from "../engine/types"
+import type { Favorite } from "../lib/db"
 import DisplayPage from "./config/DisplayPage"
 import SourcesPage from "./config/SourcesPage"
 import SchedulePage from "./config/SchedulePage"
@@ -49,6 +51,13 @@ export default function MainWindow() {
         current: event.payload,
         history: [event.payload, ...state.history].slice(0, 100),
       }))
+    })
+    return () => { unlisten.then((fn) => fn()) }
+  }, [])
+
+  useEffect(() => {
+    const unlisten = listen<Favorite[]>("favorites:sync", (event) => {
+      useFavoriteStore.getState().setItems(event.payload)
     })
     return () => { unlisten.then((fn) => fn()) }
   }, [])

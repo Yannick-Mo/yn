@@ -4,7 +4,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { PhysicalPosition } from "@tauri-apps/api/dpi"
 import { useSentenceStore } from "../stores/sentenceStore"
 import { useConfigStore } from "../stores/configStore"
-import { addFavorite, removeFavorite, isFavorited } from "../lib/db"
+import { addFavorite, removeFavorite, isFavorited, getFavorites } from "../lib/db"
 import type { AppConfig } from "../lib/ipc"
 import type { SourceStrategy } from "../engine/types"
 
@@ -160,7 +160,8 @@ export default function FloatingPanel() {
       })
       setFaved(true)
     }
-    emit("favorites:updated")
+    const favs = await getFavorites()
+    emit("favorites:sync", favs)
   }
 
   const handleMouseDown = useCallback(async (e: React.MouseEvent) => {
