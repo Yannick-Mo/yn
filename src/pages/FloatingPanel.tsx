@@ -87,10 +87,16 @@ export default function FloatingPanel() {
   const draggingRef = useRef(false)
   const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const syncFavorites = async () => {
+    const favs = await getFavorites()
+    emit("favorites:sync", favs)
+  }
+
   useEffect(() => {
     loadConfig().then(() => {
       setReady(true)
       if (!current) next()
+      syncFavorites()
     })
   }, [])
 
@@ -160,8 +166,7 @@ export default function FloatingPanel() {
       })
       setFaved(true)
     }
-    const favs = await getFavorites()
-    emit("favorites:sync", favs)
+    syncFavorites()
   }
 
   const handleMouseDown = useCallback(async (e: React.MouseEvent) => {
