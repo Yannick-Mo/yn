@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { listen } from "@tauri-apps/api/event"
 import { getFavorites, removeFavorite, exportFavorites } from "../../lib/db"
 import type { Favorite } from "../../lib/db"
 
@@ -21,6 +22,11 @@ export default function FavoritesPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    const unlisten = listen("favorites:updated", () => { load() })
+    return () => { unlisten.then((fn) => fn()) }
+  }, [])
 
   const handleRemove = async (id: string) => {
     await removeFavorite(id)

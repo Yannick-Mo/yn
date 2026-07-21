@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState, useRef } from "react"
-import { listen } from "@tauri-apps/api/event"
+import { listen, emit } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { PhysicalPosition } from "@tauri-apps/api/dpi"
 import { useSentenceStore } from "../stores/sentenceStore"
@@ -160,6 +160,7 @@ export default function FloatingPanel() {
       })
       setFaved(true)
     }
+    emit("favorites:updated")
   }
 
   const handleMouseDown = useCallback(async (e: React.MouseEvent) => {
