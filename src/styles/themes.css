@@ -1,0 +1,65 @@
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--main-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--main-text-dim);
+}
+
+select {
+  background: var(--main-surface);
+  border: 1px solid var(--main-border);
+  color: var(--main-text);
+}
+select option {
+  background: var(--main-bg-start);
+  color: var(--main-text);
+}
+
+:root,
+[data-theme="glass"] {
+  --main-bg-start: #0f172a;
+  --main-bg-end: #1e293b;
+  --main-accent: #3b82f6;
+  --main-surface: rgba(255, 255, 255, 0.05);
+  --main-border: rgba(255, 255, 255, 0.1);
+  --main-text: #ffffff;
+  --main-text-dim: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="minimal"] {
+  --main-bg-start: #f8f9fa;
+  --main-bg-end: #e9ecef;
+  --main-accent: #2563eb;
+  --main-surface: rgba(0, 0, 0, 0.03);
+  --main-border: rgba(0, 0, 0, 0.1);
+  --main-text: #1a1a1a;
+  --main-text-dim: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="warm"] {
+  --main-bg-start: #3e2723;
+  --main-bg-end: #4e342e;
+  --main-accent: #ff8a65;
+  --main-surface: rgba(255, 255, 255, 0.06);
+  --main-border: rgba(255, 255, 255, 0.1);
+  --main-text: #efebe9;
+  --main-text-dim: rgba(239, 235, 233, 0.5);
+}
+
+[data-theme="dark"] {
+  --main-bg-start: #0d0d1a;
+  --main-bg-end: #1a1a2e;
+  --main-accent: #7c4dff;
+  --main-surface: rgba(255, 255, 255, 0.05);
+  --main-border: rgba(255, 255, 255, 0.08);
+  --main-text: #e0e0e0;
+  --main-text-dim: rgba(224, 224, 224, 0.5);
+}
