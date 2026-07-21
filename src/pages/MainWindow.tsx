@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import { listen } from "@tauri-apps/api/event"
 import { useConfigStore } from "../stores/configStore"
 import { useSentenceStore } from "../stores/sentenceStore"
+import type { Sentence } from "../engine/types"
 import DisplayPage from "./config/DisplayPage"
 import SourcesPage from "./config/SourcesPage"
 import SchedulePage from "./config/SchedulePage"
@@ -40,6 +42,16 @@ export default function MainWindow() {
       registry.setStrategy(config.source_strategy)
     }
   }, [config])
+
+  useEffect(() => {
+    const unlisten = listen<Sentence>("sentence:new", (event) => {
+      useSentenceStore.setState((state) => ({
+        current: event.payload,
+        history: [event.payload, ...state.history].slice(0, 100),
+      }))
+    })
+    return () => { unlisten.then((fn) => fn()) }
+  }, [])
 
   const renderPage = () => {
     switch (activePage) {

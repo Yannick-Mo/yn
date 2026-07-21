@@ -75,10 +75,15 @@ export async function removeFavorite(sentenceId: string): Promise<void> {
 }
 
 export async function getFavorites(): Promise<Favorite[]> {
-  const d = await getDb()
-  return await d.select<Favorite[]>(
-    "SELECT sentence_id, content, author, source, from_text, type_text, translation, added_at FROM favorites ORDER BY added_at DESC"
-  )
+  try {
+    const d = await getDb()
+    return await d.select<Favorite[]>(
+      "SELECT sentence_id, content, author, source, from_text, type_text, translation, added_at FROM favorites ORDER BY added_at DESC"
+    )
+  } catch (err) {
+    console.error("getFavorites failed:", err)
+    return []
+  }
 }
 
 export async function isFavorited(sentenceId: string): Promise<boolean> {

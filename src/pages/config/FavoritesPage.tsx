@@ -5,12 +5,19 @@ import type { Favorite } from "../../lib/db"
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<Favorite[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const load = async () => {
     setLoading(true)
-    const favs = await getFavorites()
-    setFavorites(favs)
-    setLoading(false)
+    setError(null)
+    try {
+      const favs = await getFavorites()
+      setFavorites(favs)
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -34,6 +41,12 @@ export default function FavoritesPage() {
   }
 
   if (loading) return <p className="text-sm" style={{ color: "var(--main-text-dim)" }}>加载中...</p>
+  if (error) return (
+    <div className="max-w-lg">
+      <p className="text-sm" style={{ color: "var(--panel-error)" }}>加载失败: {error}</p>
+      <button onClick={load} className="text-xs mt-2" style={{ color: "var(--main-accent)" }}>重试</button>
+    </div>
+  )
 
   return (
     <div className="max-w-lg">

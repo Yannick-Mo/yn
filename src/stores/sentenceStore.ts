@@ -33,7 +33,7 @@ export const useSentenceStore = create<SentenceStore>((set, get) => ({
     set({ fetching: true })
     const result = await registry.fetchSentence()
     if (result.sentence) {
-      addHistory(result.sentence)
+      await addHistory(result.sentence)
       set((state) => ({
         current: result.sentence,
         history: [result.sentence!, ...state.history].slice(0, 100),
