@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { listen } from "@tauri-apps/api/event"
+import { listen, emit } from "@tauri-apps/api/event"
 import { useFavoriteStore } from "../../stores/favoriteStore"
 import { removeFavorite, exportFavorites } from "../../lib/db"
 import type { Favorite } from "../../lib/db"
@@ -16,6 +16,7 @@ export default function FavoritesPage() {
   }, [storeItems])
 
   useEffect(() => {
+    emit("favorites:request")
     const unlisten = listen<Favorite[]>("favorites:sync", (event) => {
       setStoreItems(event.payload)
       setLoading(false)

@@ -93,11 +93,13 @@ export default function FloatingPanel() {
   }
 
   useEffect(() => {
+    const unlisten = listen("favorites:request", () => { syncFavorites() })
     loadConfig().then(() => {
       setReady(true)
       if (!current) next()
       syncFavorites()
     })
+    return () => { unlisten.then((fn) => fn()) }
   }, [])
 
   useEffect(() => {
