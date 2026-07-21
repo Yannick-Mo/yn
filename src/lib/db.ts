@@ -1,4 +1,5 @@
 import Database from "@tauri-apps/plugin-sql"
+import type { Sentence } from "../engine/types"
 
 let db: Database | null = null
 let dbError: string | null = null
@@ -91,6 +92,51 @@ export async function isFavorited(sentenceId: string): Promise<boolean> {
   } catch (err) {
     console.error("isFavorited failed:", err)
     return false
+  }
+}
+
+export interface HistoryRecord {
+  sentence_id: string
+  content: string
+  author: string | null
+  source: string
+  from_text: string | null
+  type_text: string | null
+  translation: string | null
+  fetched_at: number
+}
+
+export async function addHistory(s: Sentence): Promise<void> {
+  try {
+    const d = await getDb()
+    await d.execute(
+      "INSERT INTO history (sentence_id, content, author, source, from_text, type_text, translation, fetched_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+      [s.id, s.content, s.author || null, s.source, s.from || null, s.type || null, s.translation || null, Date.now()]
+    )
+  } catch (err) {
+    console.error("addHistory failed:", err)
+  }
+}
+
+export async function getHistory(limit = 100): Promise<HistoryRecord[]> {
+  try {
+    const d = await getDb()
+    return await d.select<HistoryRecord[]>(
+      "SELECT sentence_id, content, author, source, from_text, type_text, translation, fetched_at FROM history ORDER BY fetched_at DESC LIMIT $1",
+      [limit]
+    )
+  } catch (err) {
+    console.error("getHistory failed:", err)
+    return []
+  }
+}
+
+export async function clearHistoryDb(): Promise<void> {
+  try {
+    const d = await getDb()
+    await d.execute("DELETE FROM history")
+  } catch (err) {
+    console.error("clearHistory failed:", err)
   }
 }
 

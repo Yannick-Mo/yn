@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { emit } from "@tauri-apps/api/event"
 import { SourceRegistry } from "../engine"
 import type { Sentence } from "../engine/types"
+import { addHistory } from "../lib/db"
 
 interface SentenceStore {
   current: Sentence | null
@@ -32,6 +33,7 @@ export const useSentenceStore = create<SentenceStore>((set, get) => ({
     set({ fetching: true })
     const result = await registry.fetchSentence()
     if (result.sentence) {
+      addHistory(result.sentence)
       set((state) => ({
         current: result.sentence,
         history: [result.sentence!, ...state.history].slice(0, 100),
